@@ -2,10 +2,11 @@
 Use QAT version of the original model and produce and install bundle app in /Applications
 
 # Instructions
+```
 git clone git@github.com:dorigoa/turbo-fieldfare-qat.git
 cd turbo-fieldfare-qat
 ./makeall.sh
-
+```
 
 `makeall.sh` script clones locally [turbo-fieldfare-fork](https://github.com/dorigoa/turbo-fieldfare-fork) and applies patches to it.
 
