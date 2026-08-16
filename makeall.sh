@@ -10,6 +10,9 @@ if [ "$rc" -ne 0 ]; then
 fi
 
 cd turbo-fieldfare
+
+sed -i '' 's+Text("Gemma 4 26B")+Text("Gemma 4 26B A4B IT QAT Q4")+' Sources/TurboFieldfareApp/Mac/Components/ModelStatusBadge.swift
+
 mkdir -p Scratch
 cp ../build-app.sh Scratch/
 Scratch/build-app.sh --install
