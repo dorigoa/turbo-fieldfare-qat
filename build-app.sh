@@ -2,7 +2,7 @@
 # Usage:
 #   scratch/make-app.sh [output-directory]      # default: build/
 #   scratch/make-app.sh --install               # also copy to /Applications
-set -euo pipefail
+#set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 APP_NAME="TurboFieldfare"
