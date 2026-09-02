@@ -2,7 +2,7 @@
 
 git clone git@github.com:drumih/turbo-fieldfare.git
 
-python3 ./pin_model.py --repo-path ./turbo-fieldfare/
+./patch.sh
 rc=$?
 if [ "$rc" -ne 0 ]; then
     echo "ERRORE: pin_model.py terminated with code $rc. Stop." >&2
