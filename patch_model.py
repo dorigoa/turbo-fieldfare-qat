@@ -11,6 +11,8 @@ the MODELS table.
     python3 patch_model.py 8bit               # pin the 8-bit checkpoint
     python3 patch_model.py 4bit               # back to the shipped default
     python3 patch_model.py --status           # what the checkout pins right now
+    python3 patch_model.py 8bit --model-dir ~/Models/gemma4-8bit.gturbo
+                                              # ...and make the Mac app use that directory
     python3 patch_model.py --probe mlx-community/gemma-4-26b-a4b-it-6bit
                                               # print a MODELS entry for any repo
 
@@ -18,6 +20,12 @@ The checkout is the current directory; --root DIR selects another one, so the
 script can live anywhere:
 
     python3 ~/bin/patch_model.py --root ~/GIT/turbo-fieldfare 8bit
+
+--model-dir DIR is optional. It makes the Mac app install into and load from
+DIR (the .gturbo directory itself; settings, history and the image companion
+go beside it). Without it the app keeps its own default location, so a run
+without --model-dir also undoes an earlier one. The CLI and the server take
+the directory on their command line (--output, --model) and are not affected.
 
 Plugging in another Gemma 4 checkpoint: run --probe on its repo, paste the
 printed block into MODELS, give it a name.
@@ -136,6 +144,13 @@ PATCHES = [
     ("Sources/TurboFieldfareRepack/Core/Writing/VisionPackWriter.swift", None, [
         (r'(modelID == )"[^"]*"', '"{repo_id}"'),
     ]),
+    # --model-dir. `nil` keeps the app's own default: scratch/gemma4.gturbo
+    # inside a checkout, else ~/Library/Application Support/TurboFieldfare/gemma4.gturbo.
+    ("Sources/TurboFieldfareApp/Core/Installation/AppModelLocation.swift",
+     "static func defaultURL()", [
+        (r'(explicitURL: )(?:nil|URL\(fileURLWithPath: "[^"]*", isDirectory: true\))',
+         '{model_dir}'),
+    ]),
 ]
 
 
@@ -159,8 +174,18 @@ def block_span(text, anchor, file):
     return start, len(text) if end < 0 else end
 
 
-def patch(model, root):
+def model_dir_literal(model_dir):
+    """Swift expression for AppModelLocation.defaultURL's explicitURL."""
+    if model_dir is None:
+        return "nil"
+    if '"' in model_dir or "\\" in model_dir:
+        sys.exit(f"--model-dir: quotes and backslashes are not supported: {model_dir}")
+    return f'URL(fileURLWithPath: "{model_dir}", isDirectory: true)'
+
+
+def patch(model, root, model_dir):
     values = {key: swift_literal(value) for key, value in model.items()}
+    values["model_dir"] = model_dir_literal(model_dir)
     for file, anchor, rules in PATCHES:
         path = root / file
         text = path.read_text(encoding="utf-8")
@@ -179,7 +204,8 @@ def patch(model, root):
         else:
             print(f"unchanged {file}")
     print(f"{root} now pins {model['display_name']} "
-          f"({model['repo_id']} @ {model['revision'][:12]})")
+          f"({model['repo_id']} @ {model['revision'][:12]}); "
+          f"app model dir: {model_dir or 'app default'}")
 
 
 def status(root):
@@ -195,7 +221,10 @@ def status(root):
             if m is None:
                 sys.exit(f"{file}: no match for {regex!r}")
             raw = m.group(0)[len(m.group(1)):]
-            if raw.startswith('"'):
+            if key == "model_dir":
+                quoted = re.search(r'"([^"]*)"', raw)
+                value = quoted.group(1) if quoted else "app default"
+            elif raw.startswith('"'):
                 value = raw.strip('"')
             else:
                 value = int(re.match(r"[\d_]+", raw).group(0).replace("_", ""))
@@ -211,7 +240,7 @@ def status(root):
             for value, files in values.items():
                 print(f"{'':22}   {swift_literal(value)}  <- {', '.join(sorted(set(files)))}")
     names = [name for name, model in MODELS.items()
-             if all(model[key] == value for key, value in pinned.items())]
+             if all(model[key] == value for key, value in pinned.items() if key in model)]
     print(f"{'MODELS entry':22} {names[0] if names else 'none (run --probe and add one)'}")
 
 
@@ -398,9 +427,14 @@ def main():
     parser.add_argument("--root", metavar="DIR", default=".",
                         help="checkout to work on, the directory that contains Sources/ "
                              "(default: current directory)")
+    parser.add_argument("--model-dir", metavar="DIR",
+                        help="with MODEL: make the Mac app install into and load from DIR, "
+                             "the .gturbo directory itself (default: the app's own location)")
     args = parser.parse_args()
     if [args.model is not None, args.status, args.probe is not None].count(True) != 1:
         parser.error("pass exactly one of MODEL, --status, --probe REPO")
+    if args.model_dir is not None and args.model is None:
+        parser.error("--model-dir goes together with MODEL")
 
     if args.probe:
         probe(args.probe)  # needs no checkout
@@ -412,7 +446,8 @@ def main():
     if args.status:
         status(root)
     else:
-        patch(MODELS[args.model], root)
+        model_dir = args.model_dir and os.path.abspath(os.path.expanduser(args.model_dir))
+        patch(MODELS[args.model], root, model_dir)
 
 
 if __name__ == "__main__":
