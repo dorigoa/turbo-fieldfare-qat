@@ -1,5 +1,16 @@
 # Purpose
-Use QAT version of the original model and produce and install bundle app in /Applications
+Use QAT version of the original model and produce and install bundle app in /Applications.
+
+To get revision and sha256 to be patched:
+```
+REPO="mlx-community/gemma-4-26B-A4B-it-qat-4bit"
+
+# 1) revision (SHA1 del commit di main)
+REV=$(hf models info "$REPO" --expand sha | jq -r .sha)
+
+# 2) sourceIndexSHA256 (SHA-256 of model.safetensors.index.json for that revision)
+curl -fsSL "https://huggingface.co/$REPO/resolve/$REV/model.safetensors.index.json" | sha256sum
+```
 
 # Instructions
 ```
