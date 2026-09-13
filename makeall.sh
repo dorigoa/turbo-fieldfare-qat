@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-git clone git@github.com:drumih/turbo-fieldfare.git
+
 
 if [[ -z "${1:-}" ]]; then
     echo "Error: argument with quantization number is mandatory ('4', '5', '6', '8')." >&2
@@ -14,6 +14,8 @@ case "$1" in
         exit 1
         ;;
 esac
+
+git clone git@github.com:drumih/turbo-fieldfare.git
 
 ./patch.sh $1
 
