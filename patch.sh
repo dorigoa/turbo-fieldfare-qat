@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -u
 
+q4="mlx-community/gemma-4-26B-A4B-it-qat-4bit"
+q5="mlx-community/gemma-4-26B-A4B-it-qat-5bit"
+q6="mlx-community/gemma-4-26B-A4B-it-qat-6bit"
+q8="mlx-community/gemma-4-26B-A4B-it-qat-8bit"
+sha5="3dfdc6b52552344da3ddf4ffb32f64ee4827b507"
+sha4="0e3cbab38ce568cf6e23543010d08d03b731910c"
+sha6="9c780d2fb8f9d8f350a58b309f65ccb17ab5bdc5"
+sha8="bedc5c51905d796b192de24567f358b0b1653d2e"
+
 list_file=$(mktemp)
 
 # Costruisce la lista dei file a partire dall'output di grep -r
