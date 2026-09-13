@@ -13,7 +13,7 @@ if [ ! -s "$list_file" ]; then
 fi
 
 while IFS= read -r file; do
-  sed -i '' 's+mlx-community/gemma-4-26b-a4b-it-4bit+mlx-community/gemma-4-12B-it-qat-OptiQ-4bit+' "$file"
+  sed -i '' 's+mlx-community/gemma-4-26b-a4b-it-4bit+mlx-community/gemma-4-26B-A4B-it-qat-4bit+' "$file"
   sed -i '' 's+Gemma 4 26B-A4B IT 4-bit+Gemma 4 26B-A4B IT QAT 4-bit+' "$file"
   sed -i '' 's+gemma-4-26b-a4b-it+gemma-4-26b-a4b-it-qat+' "$file"
   sed -i '' 's+0d77464eeb233a2da68ebf9d7dc4edaac7db956d+e70c6b3ba0979b3357dcd2f223ad8bde7787a6b6+' "$file"
@@ -22,4 +22,3 @@ done < "$list_file"
 
 # cleanup
 rm -f "$list_file"
-
