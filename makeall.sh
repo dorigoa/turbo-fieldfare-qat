@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-
-
 if [[ -z "${1:-}" ]]; then
     echo "Error: argument with quantization number is mandatory ('4', '5', '6', '8')." >&2
     exit 1
@@ -14,15 +12,12 @@ case "$1" in
         exit 1
         ;;
 esac
-
+rm -rf turbo-fieldfare
 git clone git@github.com:drumih/turbo-fieldfare.git
 
-./patch.sh $1
-
+#./patch.sh $1
+./patch_model.py --root turbo-fieldfare ${1}bit
 cd turbo-fieldfare
-
-#sed -i '' 's+Text("Gemma 4 26B")+Text("Gemma 4 26B A4B IT QAT Q$1")+' Sources/TurboFieldfareApp/Mac/Components/ModelStatusBadge.swift
-sed -i '' 's+Text("Gemma 4 26B")+Text("Gemma 4 26B A4B IT QAT Q'"$1"'")+' Sources/TurboFieldfareApp/Mac/Components/ModelStatusBadge.swift
 
 mkdir -p Scratch
 cp ../build-app.sh Scratch/
