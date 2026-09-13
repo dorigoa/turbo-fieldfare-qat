@@ -1,19 +1,29 @@
 #!/usr/bin/env bash
 set -u
 
-if [[ -z "$1" ]]; then
-    echo "Error: quantization is mandatory ('4', '5', '6', '8')." >&2
-    usage >&2
+#if [[ -z "$1" ]]; then
+if [[ -z "${1:-}" ]]; then
+    echo "Error: argument with quantization number is mandatory ('4', '5', '6', '8')." >&2
+    #usage >&2
     exit 1
 fi
 
-declare -A sha
-sha=(
-  ["4"]="0e3cbab38ce568cf6e23543010d08d03b731910c"
-  ["5"]="3dfdc6b52552344da3ddf4ffb32f64ee4827b507"
-  ["6"]="9c780d2fb8f9d8f350a58b309f65ccb17ab5bdc5"
-  ["8"]="bedc5c51905d796b192de24567f358b0b1653d2e"
-)
+case "$1" in
+    4|5|6|8) ;;
+    *)
+        echo "Error: invalid quantization '$1' (allowed: '4', '5', '6', '8')." >&2
+        exit 1
+        ;;
+esac
+
+if ! command -v hf >/dev/null 2>&1; then
+    echo "Error: 'hf' command not found in PATH." >&2
+    exit 1
+fi
+
+REPO="mlx-community/gemma-4-26B-A4B-it-qat-${1}bit"
+REV=$(hf models info "${REPO}" --expand sha | jq -r .sha)
+sourceIndexSHA256=$(curl -fsSL "https://huggingface.co/${REPO}/resolve/${REV}/model.safetensors.index.json" | sha256sum)
 
 list_file=$(mktemp)
 
@@ -27,11 +37,11 @@ if [ ! -s "$list_file" ]; then
 fi
 
 while IFS= read -r file; do
-  sed -i '' 's+mlx-community/gemma-4-26b-a4b-it-4bit+mlx-community/gemma-4-26B-A4B-it-qat-${1}bit+' "$file"
+  sed -i '' 's+mlx-community/gemma-4-26b-a4b-it-4bit+${REPO}+' "$file"
   sed -i '' 's+Gemma 4 26B-A4B IT 4-bit+Gemma 4 26B-A4B IT QAT ${1}-bit+' "$file"
   sed -i '' 's+gemma-4-26b-a4b-it+gemma-4-26b-a4b-it-qat-q${1}+' "$file"
-  sed -i '' 's+0d77464eeb233a2da68ebf9d7dc4edaac7db956d+${sha[$1]}+' "$file"
-  sed -i '' 's+bf198c9f5ea6462addca1966e5dd669c407537a876e82cf06db9084c5c850b13+b87c93774de5d13ca9d0e21b045793e42e5df032fb5e7622212524f56f9695f2+' "$file"
+  sed -i '' 's+0d77464eeb233a2da68ebf9d7dc4edaac7db956d+${REV}+' "$file"
+  sed -i '' 's+bf198c9f5ea6462addca1966e5dd669c407537a876e82cf06db9084c5c850b13+${sourceIndexSHA256}+' "$file"
 done < "$list_file"
 
 # cleanup
