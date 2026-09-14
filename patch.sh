@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
+# Legacy sed-based patcher, superseded by patch_model.py (which also fixes the
+# download and install byte counts). Kept for reference; makeall.sh no longer
+# calls it. Only the 4-bit QAT checkpoint is accepted: the runtime's Metal
+# kernels decode 4-bit weights only, so the 5/6/8-bit variants would install
+# and then fail the app's metadata validation.
 set -u
 
 #if [[ -z "$1" ]]; then
 if [[ -z "${1:-}" ]]; then
-    echo "Error: argument with quantization number is mandatory ('4', '5', '6', '8')." >&2
+    echo "Error: argument with quantization number is mandatory (only '4' is supported)." >&2
     #usage >&2
     exit 1
 fi
 
 case "$1" in
-    4|5|6|8) ;;
+    4) ;;
     *)
-        echo "Error: invalid quantization '$1' (allowed: '4', '5', '6', '8')." >&2
+        echo "Error: invalid quantization '$1' (only '4' is supported: the Metal kernels decode 4-bit weights only)." >&2
         exit 1
         ;;
 esac

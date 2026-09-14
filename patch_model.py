@@ -8,18 +8,18 @@ installer, the Mac app and the vision-pack writer point at another entry of
 the MODELS table.
 
     cd /path/to/turbo-fieldfare               # the checkout that contains Sources/
-    python3 patch_model.py 8bit               # pin the 8-bit checkpoint
+    python3 patch_model.py qat4bit            # pin the QAT 4-bit checkpoint
     python3 patch_model.py 4bit               # back to the shipped default
     python3 patch_model.py --status           # what the checkout pins right now
-    python3 patch_model.py 8bit --model-dir ~/Models/gemma4-8bit.gturbo
+    python3 patch_model.py qat4bit --model-dir ~/Models/gemma4-qat.gturbo
                                               # ...and make the Mac app use that directory
-    python3 patch_model.py --probe mlx-community/gemma-4-26b-a4b-it-6bit
+    python3 patch_model.py --probe mlx-community/gemma-4-26B-A4B-it-qat-4bit
                                               # print a MODELS entry for any repo
 
 The checkout is the current directory; --root DIR selects another one, so the
 script can live anywhere:
 
-    python3 ~/bin/patch_model.py --root ~/GIT/turbo-fieldfare 8bit
+    python3 ~/bin/patch_model.py --root ~/GIT/turbo-fieldfare qat4bit
 
 --model-dir DIR is optional. It makes the Mac app install into and load from
 DIR (the .gturbo directory itself; settings, history and the image companion
@@ -28,13 +28,18 @@ without --model-dir also undoes an earlier one. The CLI and the server take
 the directory on their command line (--output, --model) and are not affected.
 
 Plugging in another Gemma 4 checkpoint: run --probe on its repo, paste the
-printed block into MODELS, give it a name.
+printed block into MODELS, give it a name. It must be an MLX affine 4-bit,
+group-64 checkpoint with an 8-bit router; the shared expert may be 4- or
+8-bit (the QAT checkpoint has it at 8-bit). The runtime refuses anything else.
 
 Scope: only the pinned identity moves. The Metal kernels decode 4-bit weights
-(router and shared expert also have 8-bit paths) and the repacker and manifest
-validators enforce that. After patching, the installer accepts the new
-checkpoint, but the runtime will not load a 5/6/8-bit model until kernels
-exist. The 4-bit assumptions live in:
+(router and shared expert also have 8-bit paths) and the manifest validator
+enforces that when the app loads the model: a 5/6/8-bit checkpoint downloads
+and installs fine, then the app reports "completed install did not pass
+metadata validation" because ManifestReader.validateQuant rejects embedding,
+attention and routed experts at 8-bit. Without that check the kernels would
+still unpack the bytes as nibble pairs and produce garbage. MODELS therefore
+lists 4-bit checkpoints only. The 4-bit assumptions live in:
   Sources/TurboFieldfareRepack/Core/Planning/RepackPlanner.swift
       logicalShape (32 / bits is wrong for 5 and 6), vision companion guards
   Sources/TurboFieldfare/Infrastructure/ModelIO/ManifestReader.swift
@@ -60,7 +65,9 @@ from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Models. Every value comes from `--probe <repo>`; "4bit" is what the
-# repository ships with. Add an entry here to plug in another checkpoint.
+# repository ships with, "qat4bit" the quantization-aware-trained variant with
+# the same layout. Only 4-bit checkpoints belong here: see the module
+# docstring for why the 5/6/8-bit entries were dropped.
 # ---------------------------------------------------------------------------
 
 MODELS = {
@@ -74,35 +81,15 @@ MODELS = {
         "vision_download_bytes": 1_539_478_890,
         "vision_weights_bytes": 1_144_373_248,
     },
-    "5bit": {
-        "display_name": "Gemma 4 26B-A4B IT 5-bit",
-        "repo_id": "mlx-community/gemma-4-26b-a4b-it-5bit",
-        "revision": "bc8c1a7fcc71ae85198570564917ad67cd2d1745",
-        "index_sha256": "f1348e9043602e8c1382ff55f4fea85404a8b5121dff11c1c90bae68906b72e0",
-        "download_bytes": 17_763_763_004,
-        "installed_bytes": 17_421_032_412,
-        "vision_download_bytes": 1_311_859_302,
-        "vision_weights_bytes": 1_144_778_752,
-    },
-    "6bit": {
-        "display_name": "Gemma 4 26B-A4B IT 6-bit",
-        "repo_id": "mlx-community/gemma-4-26b-a4b-it-6bit",
-        "revision": "968a9faa4b69230f3fc316b5755cb937a29c7ddc",
-        "index_sha256": "144cf8350cb04bfe40692a183bdeba38df691478cc86e27e6242373171ce7d5f",
-        "download_bytes": 20_892_749_980,
-        "installed_bytes": 20_550_142_940,
-        "vision_download_bytes": 1_468_984_170,
-        "vision_weights_bytes": 1_145_184_256,
-    },
-    "8bit": {
-        "display_name": "Gemma 4 26B-A4B IT 8-bit",
-        "repo_id": "mlx-community/gemma-4-26b-a4b-it-8bit",
-        "revision": "33c6d23798a0af159529890f79329206dbfbd73c",
-        "index_sha256": "4b96ec862d7ae3f8d150b22b295cefcc9b5ef5e83f172f530dc1f2d2c11339cc",
-        "download_bytes": 26_939_947_964,
-        "installed_bytes": 26_871_278_556,
-        "vision_download_bytes": 1_174_289_506,
-        "vision_weights_bytes": 1_145_995_264,
+    "qat4bit": {
+        "display_name": "Gemma 4 26B-A4B IT QAT 4-bit",
+        "repo_id": "mlx-community/gemma-4-26B-A4B-it-qat-4bit",
+        "revision": "0e3cbab38ce568cf6e23543010d08d03b731910c",
+        "index_sha256": "5455e83705bbdd4e3702c7d4f9d49d4900e84533036628f74500538075dd5c80",
+        "download_bytes": 14_952_958_284,
+        "installed_bytes": 14_559_575_188,
+        "vision_download_bytes": 1_648_821_362,
+        "vision_weights_bytes": 1_144_373_248,
     },
 }
 
@@ -403,6 +390,8 @@ def probe(repo):
     quant = config.get("quantization", {})
     short = repo.rsplit("/", 1)[-1]
     name = short.rsplit("-", 1)[-1] if short.endswith("bit") else short
+    if "-qat-" in short.lower():
+        name = "qat" + name
     print(f'    "{name}": {{  # {quant.get("bits")}-bit, group {quant.get("group_size")}, {quant.get("mode")}')
     print(f'        "display_name": "{short}",  # free text, shown by the app')
     print(f'        "repo_id": "{repo}",')
