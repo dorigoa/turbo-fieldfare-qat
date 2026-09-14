@@ -1,5 +1,6 @@
 # Purpose
 
+
 Build the [TurboFieldfare](https://github.com/drumih/turbo-fieldfare) Mac app
 from upstream, pinned to a Gemma 4 26B-A4B checkpoint of your choice instead of
 the one hard-coded upstream, and install the bundle into `/Applications`.
