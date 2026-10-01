@@ -25,6 +25,8 @@ echo "==> Building release products"
 cd "$REPO_ROOT"
 swift build -c release --product TurboFieldfareMac
 swift build -c release --product TurboFieldfareDecodeService
+swift build -c release --product TurboFieldfareServer
+swift build -c release --product TurboFieldfareCLI
 
 echo "==> Assembling $APP"
 rm -rf "$APP"
@@ -32,6 +34,9 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp "$RELEASE/TurboFieldfareMac" "$APP/Contents/MacOS/"
 cp "$RELEASE/TurboFieldfareDecodeService" "$APP/Contents/MacOS/"
+cp "$RELEASE/TurboFieldfareCLI" "$APP/Contents/MacOS/"
+cp "$RELEASE/TurboFieldfareServer" "$APP/Contents/MacOS/"
+
 
 for bundle in "$RELEASE"/*.bundle; do
     [ -e "$bundle" ] || continue
@@ -83,3 +88,7 @@ if [ "$INSTALL" -eq 1 ]; then
     cp -R "$APP" "/Applications/"
     echo "==> Installed /Applications/$APP_NAME.app"
 fi
+
+sudo ln -s /Applications/$APP_NAME.app/Contents/MacOS/TurboFieldfareServer /usr/local/bin/TurboFieldfareServer
+sudo ln -s /Applications/$APP_NAME.app/Contents/MacOS/TurboFieldfareCLI /usr/local/bin/TurboFieldfareCLI
+
