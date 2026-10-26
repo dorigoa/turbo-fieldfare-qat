@@ -38,4 +38,4 @@ cd turbo-fieldfare
 #mkdir -p Scratch
 #cp ../build-app.sh Scratch/
 #Scratch/build-app.sh --install
-Scratch/build_app.sh --install
+Scripts/build_app.sh --install
