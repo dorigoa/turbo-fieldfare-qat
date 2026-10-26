@@ -35,6 +35,7 @@ git clone git@github.com:drumih/turbo-fieldfare.git
 ./patch_model.py --root turbo-fieldfare "${MODEL}"
 cd turbo-fieldfare
 
-mkdir -p Scratch
-cp ../build-app.sh Scratch/
-Scratch/build-app.sh --install
+#mkdir -p Scratch
+#cp ../build-app.sh Scratch/
+#Scratch/build-app.sh --install
+Scratch/build_app.sh --install
